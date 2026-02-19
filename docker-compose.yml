@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: url_shortener
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - url_shortner_pgdata:/var/lib/postgresql/data
+volumes:
+  url_shortner_pgdata:
