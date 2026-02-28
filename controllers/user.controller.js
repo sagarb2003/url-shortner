@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
-import db from "../db";
-import userTable from "../db/schema/user.schema";
-import { loginPostRequestBodySchema, signupPostRequestBodySchema } from "../validations/request.validation";
-import { hashPassword } from "../utils/hash";
-import { jwt } from 'jsonwebtoken';
+import db from "../db/index.js";
+import {usersTable} from "../models/index.js";
+import { loginPostRequestBodySchema, signupPostRequestBodySchema } from "../validations/request.validation.js";
+import { hashPassword } from "../utils/hash.js";
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 export async function createUser(req, res) {
     const validationData = await signupPostRequestBodySchema.safeParseAsync(req.body);
@@ -11,18 +13,18 @@ export async function createUser(req, res) {
         return res.status(400).json({ error: validationData.error.format() });
     }
     const { firstName, lastName, email, password } = validationData.data;
-    const existingUser = await db.select().from(userTable).where(eq(userTable.email, email));
-    if (existingUser) {
+    const existingUser = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    if (existingUser.length > 0) {
         return res.status(400).json({ message: "User with this email already exists" });
     }
     const { salt, hashedPassword } = hashPassword(password);
-    const [user] = await db.insert(userTable).values({
+    const [user] = await db.insert(usersTable).values({
         firstName,
         lastName,
         email,
         password: hashedPassword,
         salt
-    }).returning({ userId: userTable.id });
+    }).returning({ userId: usersTable.id });
     res.status(201).json({ message: "User created successfully", userId: user.userId });
 }
 
@@ -32,7 +34,7 @@ export async function loginUser(req, res) {
         return res.status(400).json({ error: validationData.error.format() });
     }
     const { email, password } = validationData.data;
-    const [user] = await db.select().from(userTable).where(eq(userTable.email, email));
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
     if (!user) {
         return res.status(400).json({ message: `User with email ${email} does not exist` });
     }
@@ -41,6 +43,6 @@ export async function loginUser(req, res) {
     if (hashedPassword !== storedHashedPassword) {
         return res.status(400).json({ message: "Invalid password" });
     }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET)
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET)
     res.status(200).json({ token: token });
 }
