@@ -8,8 +8,8 @@ import { url } from 'zod';
 
 app.use(express.json());
 
-app.use(urlRoutes)
 app.use('/users', userRoutes);
+app.use(urlRoutes)
 
 app.listen(8000,()=>{
     console.log("Server is running on port 8000");
